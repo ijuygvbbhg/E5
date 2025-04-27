@@ -1,0 +1,55 @@
+name: Check Microsoft E5 Expiry
+
+on:
+  schedule:
+    # Runs every Monday at 02:30 UTC (10:30 AM Beijing Time)
+    # Adjust the cron schedule as needed: https://crontab.guru/
+    - cron: '30 2 * * 1'
+  workflow_dispatch: # Allows manual triggering from the Actions tab in GitHub
+
+jobs:
+  check-expiry:
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+
+    steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v4 # Gets your code, including the python script
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10' # Choose a Python version
+
+    - name: Install system dependencies (Chrome & ChromeDriver)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y chromium-browser chromium-chromedriver
+        # Verify installation location (usually /usr/bin/chromedriver)
+        which chromedriver
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install selenium
+        # Add any other dependencies needed by sendNotify.py, e.g., requests
+        # pip install requests 
+
+    - name: Run E5 Expiry Check Script
+      env:
+        # IMPORTANT: Retrieve the accounts string from GitHub Secrets
+        MS_E5_ACCOUNTS: ${{ secrets.MS_E5_ACCOUNTS }} 
+        # Add secrets needed for sendNotify.py if you use it
+        # PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PLUS_TOKEN }} 
+        # TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+        # TG_USER_ID: ${{ secrets.TG_USER_ID }}
+        # ... etc
+      run: python check_e5_expiry.py # Make sure your python script is named check_e5_expiry.py
+
+    # Optional: Upload screenshots on failure (useful for debugging)
+    # Note: This might capture sensitive info if the error page shows it.
+    # - name: Upload Debug Screenshots on Failure
+    #   if: failure() # Only run this step if the previous steps failed
+    #   uses: actions/upload-artifact@v3
+    #   with:
+    #     name: error-screenshots
+    #     path: ./*.png # Upload any png files (where screenshots are saved)
